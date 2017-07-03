@@ -1,0 +1,59 @@
+#!/bin/sh
+# $0 is a script name,
+# $1, $2, $3 etc are passed arguments
+# $1 is our command
+CMD=$1
+ARGUMENTS=""
+
+# Switch to the directory of this script
+cd "$(dirname "$(realpath "$0")")"
+
+# By default this script proxies via Tor to anonymize the traffic
+if [ $ENABLE_TOR = true ]; then
+    echo "Activating Tor proxy"
+    ARGUMENTS=$ARGUMENTS+" --tor always --tor_controller 127.0.0.1:9051 --tor_proxy 127.0.0.1:9050"
+fi
+function tor {
+  if [ $ENABLE_TOR = true ]; then
+      /usr/bin/tor &
+  fi
+}
+
+# Volumes
+addgroup -g ${GID} zeronet && adduser -s /bin/sh -G zeronet -u ${UID} -D zeronet
+chown -Rh $UID:$GID /ZeroNet
+chown -Rh $UID:$GID /data
+cd /ZeroNet
+
+# Activate plugin
+if [ -z ${UIPASSWORD:-false} ]; then
+    echo "Activating UI password"
+    mv plugins/disabled-UiPassword plugins/UiPassword
+    ARGUMENTS=$ARGUMENTS+" --ui_password "+$UIPASSWORD
+fi
+
+if [ $# -eq 0 ]; then
+    tor
+    exec su-exec zeronet:zeronet python zeronet.py --ui_ip 0.0.0.0 $ARGUMENTS
+else
+    case "$CMD" in
+      'create' )
+        exec su-exec zeronet:zeronet python zeronet.py siteCreate
+        ;;
+
+      'sign' )
+        exec su-exec zeronet:zeronet python zeronet.py siteSign $2
+        ;;
+
+      'publish' )
+        exec su-exec zeronet:zeronet python zeronet.py sitePublish $2
+        ;;
+
+       * )
+        tor
+        # Run custom command. Thanks to this line we can still use
+        # "docker run our_image /bin/bash" and it will work
+        exec su-exec zeronet:zeronet $@
+        ;;
+    esac
+fi
