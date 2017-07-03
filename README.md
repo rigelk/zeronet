@@ -1,4 +1,4 @@
-# ZeroNet
+[![](https://images.microbadger.com/badges/image/rigelk/zeronet.svg)](https://hub.docker.com/r/rigelk/zeronet "Click to view the image on Docker Hub")
 
 Decentralized websites using Bitcoin crypto and the BitTorrent network - https://zeronet.io
 
